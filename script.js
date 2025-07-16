@@ -1,41 +1,49 @@
-body {
-  font-family: sans-serif;
-  padding: 20px;
-}
-#malla-container {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-}
-.semestre {
-  min-width: 180px;
-  background: #f5f5f5;
-  border-radius: 8px;
-  padding: 10px;
-}
-.asignatura {
-  background: #fff;
-  border: 1px solid #aaa;
-  margin: 5px 0;
-  padding: 8px;
-  border-radius: 5px;
-  cursor: pointer;
-  text-align: center;
-  font-size: 14px;
-}
-.aprobada {
-  background-color: #b6e4b6;
-  border-color: #3e8e41;
-  text-decoration: line-through;
-}
-.desbloqueada {
-  background-color: #f0fdf4;
-  border-color: #3e8e41;
-}
-.bloqueada {
-  background-color: #eee;
-  border-color: #ccc;
-  color: #888;
-  cursor: not-allowed;
+let asignaturas = [];
+let aprobadas = new Set();
+
+fetch('asignaturas.json')
+  .then(res => res.json())
+  .then(data => {
+    asignaturas = data;
+    renderMalla();
+  });
+
+function renderMalla() {
+  const container = document.getElementById("malla-container");
+  container.innerHTML = "";
+
+  const maxSemestre = Math.max(...asignaturas.map(a => a.semestre));
+  for (let s = 1; s <= maxSemestre; s++) {
+    const columna = document.createElement("div");
+    columna.className = "semestre";
+    const titulo = document.createElement("h3");
+    titulo.textContent = `Semestre ${s}`;
+    columna.appendChild(titulo);
+
+    asignaturas
+      .filter(a => a.semestre === s)
+      .forEach(asig => {
+        const div = document.createElement("div");
+        div.className = "asignatura";
+        div.textContent = asig.nombre;
+        div.title = `${asig.creditos} créditos`;
+
+        if (aprobadas.has(asig.id)) {
+          div.classList.add("aprobada");
+        } else if (asig.prerrequisitos.every(req => aprobadas.has(req))) {
+          div.classList.add("desbloqueada");
+          div.onclick = () => {
+            aprobadas.add(asig.id);
+            renderMalla();
+          };
+        } else {
+          div.classList.add("bloqueada");
+        }
+
+        columna.appendChild(div);
+      });
+
+    container.appendChild(columna);
+  }
 }
 
